@@ -1,0 +1,21 @@
+# Dataset
+data/
+
+# Model files and generated outputs
+models/
+outputs/
+
+# Python environment and cache
+.venv/
+venv/
+__pycache__/
+*.pyc
+.keras/
+.matplotlib_cache/
+
+# Secrets
+.env
+
+# IDE files
+.vscode/
+.idea/

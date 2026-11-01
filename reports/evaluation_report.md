@@ -77,10 +77,10 @@ $$\begin{pmatrix} \text{TN} = 1,384 & \text{FP} = 17 \\ \text{FN} = 218 & \text{
 | **Total Ground Truth** | **1,401** | **1,112** | **2,513** |
 | **Class Recall Rate** | **98.79%** | **80.40%** | Overall: **90.65%** |
 
-- **True Negatives (TN):** **1,384** / 1,401 Organic samples correctly recognized (**98.79%** accuracy on Organic waste).
-- **False Positives (FP):** **17** / 1,401 Organic samples misclassified as Recyclable (**1.21%** error rate).
-- **False Negatives (FN):** **218** / 1,112 Recyclable samples misclassified as Organic (**19.60%** error rate).
-- **True Positives (TP):** **894** / 1,112 Recyclable samples correctly recognized (**80.40%** recall).
+- **True Negatives (TN):** **1,384** / 1,401 Organic samples correctly recognized (**98.79%** Organic recall / specificity).
+- **False Positives (FP):** **17** Organic samples predicted as Recyclable (**1.21% false-positive rate among Organic samples**, 17 / 1,401).
+- **False Negatives (FN):** **218** Recyclable samples predicted as Organic (**19.60% false-negative rate among Recyclable samples**, 218 / 1,112).
+- **True Positives (TP):** **894** / 1,112 Recyclable samples correctly recognized (**80.40%** Recyclable recall).
 
 ---
 
@@ -121,9 +121,11 @@ The 218 False Negatives represent recyclable items (e.g., crushed, soiled, or tr
 
 ## 7. Limitations and Observations
 
-1. **Frozen Base Trade-Off:** The feature extractor was completely frozen throughout training. While this achieved an outstanding 90.65% accuracy and 0.9866 AUC, unfreezing top inverted residual blocks during a subsequent fine-tuning stage could further reduce False Negatives.
-2. **Complex / Soiled Items:** Manual inspection of misclassified samples in `outputs/test_predictions.csv` indicates that edge cases primarily involve food-stained containers, transparent plastic wrapping, or items with mixed organic and recyclable parts.
-3. **Hardware Execution:** The evaluation ran across all 2,513 images in approximately 44 seconds on the 20-core Intel CPU, proving that MobileNetV2 is lightweight and well-suited for edge and local web deployment without requiring expensive GPU infrastructure.
+1. **Strict Binary Classification Limitation:** The model was trained strictly as a binary classifier: it only categorizes items as **Organic (0)** or **Recyclable (1)**. It has **no separate Non-Recyclable, Landfill, Hazardous, or Electronic Waste category**. Any non-recyclable or hazardous item presented to the model will inevitably be assigned to either Organic or Recyclable.
+2. **No Guarantee of Municipal Acceptance:** A prediction of "Recyclable" is a statistical prediction based on training image features and does **not** guarantee acceptance at any specific municipal recycling facility. Local sorting regulations, contamination standards, and accepted plastic resin codes vary by jurisdiction.
+3. **Frozen Base Trade-Off:** The feature extractor was completely frozen throughout training. While this achieved an outstanding 90.65% accuracy and 0.9866 AUC, unfreezing top inverted residual blocks during a subsequent fine-tuning stage could further reduce False Negatives.
+4. **Complex / Soiled Items:** Manual inspection of misclassified samples in `outputs/test_predictions.csv` indicates that edge cases primarily involve food-stained containers, transparent plastic wrapping, or items with mixed organic and recyclable parts.
+5. **Hardware Execution:** The evaluation ran across all 2,513 images in approximately 44 seconds on the 20-core Intel CPU, proving that MobileNetV2 is lightweight and well-suited for edge and local web deployment without requiring expensive GPU infrastructure.
 
 ---
 

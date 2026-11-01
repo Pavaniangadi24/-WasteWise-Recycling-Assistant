@@ -12,10 +12,14 @@ __pycache__/
 *.pyc
 .keras/
 .matplotlib_cache/
+.streamlit/.cache/
 
 # Secrets
 .env
+.env*.local
 
-# IDE files
+# OS and IDE files
 .vscode/
 .idea/
+.DS_Store
+Thumbs.db

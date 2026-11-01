@@ -63,40 +63,36 @@ def validate_image_file(
             p = Path(file_input)
             if not p.is_file():
                 return False, f"File not found: {file_input}", None
-            if p.stat().st_size == 0:
+            file_bytes = p.read_bytes()
+            if len(file_bytes) == 0:
                 return False, "File is empty (0 bytes).", None
-            if p.stat().st_size > MAX_IMAGE_SIZE_BYTES:
+            if len(file_bytes) > MAX_IMAGE_SIZE_BYTES:
                 return False, f"File exceeds maximum allowed size ({MAX_IMAGE_SIZE_BYTES // (1024*1024)} MB).", None
-            img = Image.open(p)
         elif isinstance(file_input, bytes):
-            if len(file_input) == 0:
+            file_bytes = file_input
+            if len(file_bytes) == 0:
                 return False, "File is empty (0 bytes).", None
-            if len(file_input) > MAX_IMAGE_SIZE_BYTES:
+            if len(file_bytes) > MAX_IMAGE_SIZE_BYTES:
                 return False, f"File exceeds maximum allowed size ({MAX_IMAGE_SIZE_BYTES // (1024*1024)} MB).", None
-            img = Image.open(io.BytesIO(file_input))
         elif hasattr(file_input, "read"):
             # BytesIO or Streamlit UploadedFile
-            raw_bytes = file_input.read()
+            file_bytes = file_input.read()
             if hasattr(file_input, "seek"):
                 file_input.seek(0)
-            if len(raw_bytes) == 0:
+            if len(file_bytes) == 0:
                 return False, "Uploaded file is empty (0 bytes).", None
-            if len(raw_bytes) > MAX_IMAGE_SIZE_BYTES:
+            if len(file_bytes) > MAX_IMAGE_SIZE_BYTES:
                 return False, f"Uploaded file exceeds maximum allowed size ({MAX_IMAGE_SIZE_BYTES // (1024*1024)} MB).", None
-            img = Image.open(io.BytesIO(raw_bytes))
         else:
             return False, f"Unsupported input type: {type(file_input).__name__}", None
 
         # Verify image integrity
-        img.verify()
+        with Image.open(io.BytesIO(file_bytes)) as img_check:
+            img_check.verify()
 
-        # Reopen after verify() as verify() can mutate internal state
-        if isinstance(file_input, (str, Path)):
-            img = Image.open(file_input)
-        elif isinstance(file_input, bytes):
-            img = Image.open(io.BytesIO(file_input))
-        else:
-            img = Image.open(file_input)
+        # Reopen and load pixel data into memory
+        img = Image.open(io.BytesIO(file_bytes))
+        img.load()
 
         # Check dimensions
         width, height = img.size

@@ -1,11 +1,11 @@
 # Phase 7: Streamlit Web Application Report
 
-**Project:** WasteWise Recycling Assistant  
-**Application Entrypoint:** `app.py`  
-**Prediction & Preprocessing Module:** `src/predict.py`  
-**Test Suite:** `tests/test_predict.py`  
-**Date:** November 1, 2026  
-**Status:** Completed & 100% Validated (52/52 Tests Passing)  
+**Project:** WasteWise Recycling Assistant
+**Application Entrypoint:** `app.py`
+**Prediction & Preprocessing Module:** `src/predict.py`
+**Test Suite:** `tests/test_predict.py` & `tests/test_integration_e2e.py`
+**Date:** November 1, 2026
+**Status:** Completed & 100% Validated
 
 ---
 
@@ -18,7 +18,7 @@ Phase 7 delivered a professional, responsive, and beginner-friendly **Streamlit 
 4. **Model Performance:** Comprehensive benchmarking displaying the exact empirical metrics (90.65% test accuracy, 0.9866 ROC-AUC, 96.10% validation accuracy) with interactive tables and evaluation curves.
 5. **About:** Deep dive into system architecture, transfer learning design, technology stack, and real-world edge-deployment considerations.
 
-All vision inference is executed 100% locally on the client machine. The trained weights (`models/best_mobilenetv2.keras`), evaluation metrics, and preprocessing pipelines were preserved without modification.
+All vision inference is executed 100% locally on the client machine (image pixels never leave the local environment; only prediction metadata and optional user text descriptions are sent to Google Gemini when the API is enabled). The trained weights (`models/best_mobilenetv2.keras`), evaluation metrics, and preprocessing pipelines were preserved without modification.
 
 ---
 
@@ -43,7 +43,7 @@ All vision inference is executed 100% locally on the client machine. The trained
   - **Organic Waste (Class 0, Green Bin):** Biodegradable food scraps, fruit/vegetable peels, coffee grounds, and garden trimmings that decompose naturally.
   - **Recyclable Waste (Class 1, Blue Bin):** Rigid plastics (#1 & #2), clean aluminum/tin cans, dry cardboard, paper packaging, and glass.
 - **Workflow Steps:** Illustrates the 3-step pipeline: (1) Image Upload $\rightarrow$ (2) Local MobileNetV2 Classification $\rightarrow$ (3) Actionable Recycling Guidance.
-- **Edge Privacy Guarantee:** Reassures users that vision inference is 100% local with zero image bytes uploaded.
+- **Local Privacy Architecture:** Reassures users that vision inference is executed 100% locally with zero image pixels uploaded; only prediction metadata (category label, confidence) and optional user text descriptions are transmitted to Gemini over HTTPS when enabled.
 
 ### B. Waste Classifier & AI Recycling Assistant (`render_classifier()`)
 - **Dual Input Interface:**
@@ -85,7 +85,11 @@ All vision inference is executed 100% locally on the client machine. The trained
 - **Per-Class Breakdown:**
   - Organic (Class 0): Precision: 86.39%, Recall: 98.79%, F1-Score: 92.17% (Support: 1,401).
   - Recyclable (Class 1): Precision: 98.13%, Recall: 80.40%, F1-Score: 88.38% (Support: 1,112).
-- **Confusion Matrix:** 1,384 True Organics, 17 False Recyclables, 218 False Organics, 894 True Recyclables.
+- **Confusion Matrix Analysis:**
+  - True Organics: 1,384 correctly classified (Organic Recall / Specificity: 98.79%).
+  - False Positives: 17 Organic samples predicted as Recyclable (**1.21% false-positive rate among Organic samples**, 17 / 1,401).
+  - False Negatives: 218 Recyclable samples predicted as Organic (**19.60% false-negative rate among Recyclable samples**, 218 / 1,112).
+  - True Recyclables: 894 correctly classified (Recyclable Recall: 80.40%).
 - **Diagnostic Curves:** Renders actual output plots from `outputs/`:
   - `outputs/confusion_matrix.png`
   - `outputs/roc_curve.png`
@@ -95,11 +99,13 @@ All vision inference is executed 100% locally on the client machine. The trained
 ### E. About (`render_about()`)
 - **Architecture:** MobileNetV2 base (154 frozen layers) + GlobalAveragePooling2D, BatchNormalization, Dropout(0.3), Dense(128, ReLU), Dropout(0.2), Dense(1, Sigmoid).
 - **Technology Stack:** Python 3.12, TensorFlow 2.20, Keras 3.12, Streamlit 1.66, Pillow, Scikit-Learn, Requests.
-- **Practical Limitations:** Notes visual ambiguity of soiled/composite items and municipal sorting variance.
+- **Practical Limitations:** Notes binary-only classification, visual ambiguity of soiled/composite items, and municipal sorting variance.
 
 ---
 
 ## 4. How to Run the Application
+
+The application is structured as a **locally runnable Streamlit web application** (`streamlit run app.py`), accessible in any standard web browser on the local machine. It is not currently deployed to cloud hosting.
 
 ### A. Launch Command
 From the project root directory (`C:\Users\pavan\WasteWise-Recycling-Assistant`), run:
@@ -135,7 +141,9 @@ The application operates 100% offline out-of-the-box using the built-in rule-bas
 
 ## 5. Model Loading, Preprocessing & Caching Details
 
-- **Model Caching:** Model loading is decorated with `@st.cache_resource(show_spinner=False)`. The Keras model is loaded into memory exactly once upon application initialization, ensuring sub-25ms inference latency on subsequent requests without memory leaks.
+- **Model Caching & Latency Characteristics:**
+  - Model loading is decorated with `@st.cache_resource(show_spinner=False)`. The Keras model is loaded into memory once upon application initialization.
+  - **Cold Start vs. Warm Inference:** Initial model loading and TensorFlow graph building take approximately 3–5 seconds on application startup. Once loaded and warmed up, single-image forward-pass CPU inference averages ~12–25 ms on the test benchmark machine (Intel Core i5-12450HX). Note that this is an empirical benchmark under specific test conditions, not a universal latency guarantee across different hardware.
 - **Preprocessing Pipeline Consistency:**
   - Image input is validated via `validate_image_file()`.
   - Mode is explicitly forced to RGB: `pil_img.convert("RGB")`.
@@ -149,21 +157,14 @@ The application operates 100% offline out-of-the-box using the built-in rule-bas
 
 ## 6. Automated Testing & Validation
 
-The test suite was expanded to include comprehensive unit testing for all UI-supporting functions (`tests/test_predict.py`), preserving all existing tests.
+The project test suite encompasses 67 automated tests across all components (`tests/test_predict.py`, `tests/test_integration_e2e.py`, etc.).
 
 Executed:
 ```powershell
 python -m unittest discover tests
 ```
 
-### Test Results:
-```text
-Ran 52 tests in 31.921s
-
-OK
-```
-
-### Complete Test Coverage Breakdown (52 Tests):
+### Complete Test Coverage Breakdown (67 Tests Passing):
 1. **`tests/test_data_loader.py` (9 tests):** Validates RGB conversion, dataset directory paths, split records, deterministic split isolation, and TensorFlow dataset batching.
 2. **`tests/test_model.py` (9 tests):** Validates MobileNetV2 architecture, frozen base layers, trainable classification head, output shape `(None, 1)`, and ImageNet weights.
 3. **`tests/test_train.py` (3 tests):** Validates loss function, optimizer setup, checkpoint callbacks, and training convergence.
@@ -171,11 +172,13 @@ OK
 5. **`tests/test_recycling_rules.py` (4 tests):** Validates 6-section organic/recyclable guidance generation, category normalization, and disclaimer inclusion.
 6. **`tests/test_genai_assistant.py` (12 tests):** Validates prompt engineering, key masking, mocked API responses, HTTP 429 quota fallback, network failure fallback, empty response handling, default model selection, and backend tracking.
 7. **`tests/test_predict.py` (11 tests):** Validates image file validation (JPG/PNG), rejection of invalid extensions, rejection of corrupted/empty bytes, preprocessing mode conversions (RGB/RGBA/L/P), normalized pixel bounds, confidence calculation for both classes, decision boundaries, and model loading error handling.
+8. **`tests/test_integration_e2e.py` (15 tests):** Validates full end-to-end classification pipeline, held-out test sample workflows, preprocessing parity, Streamlit UI section execution, and edge case handling.
 
 ---
 
 ## 7. Known Real-World Limitations
 
-1. **Statistical Prediction Nature:** High model confidence reflects resemblance to training distributions; it is not a legal or municipal sorting guarantee.
-2. **Hidden Composite Materials:** Paper coffee cups with polyethylene liners, composite snack wrappers, and greasy pizza boxes appear clean on one surface but are contaminated for mechanical recycling.
-3. **Regional Sorting Variations:** Municipal capabilities differ significantly across regional waste management districts.
+1. **Strict Binary Classification Scope:** The vision classifier operates strictly as a binary classifier predicting either `Organic` (0) or `Recyclable` (1). It does NOT include separate classes for Non-Recyclable / Landfill waste, hazardous items, or electronic waste. A prediction of "Recyclable" indicates visual similarity to recyclable training distribution items and does not guarantee municipal recycling acceptance.
+2. **Statistical Prediction Nature:** High model confidence reflects resemblance to training distributions; it is not an unconditional guarantee of municipal sorting acceptance.
+3. **Hidden Composite Materials:** Paper coffee cups with polyethylene liners, composite snack wrappers, and greasy pizza boxes appear clean on one surface but are contaminated for mechanical recycling.
+4. **Regional Sorting Variations:** Municipal capabilities differ significantly across regional waste management districts. Users are encouraged to verify local waste collection policies.
